@@ -1,0 +1,11 @@
+{
+  "name": "img-cropper",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "hsiubb",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.16.4",
+    "path": "^0.12.7"
+  }
+}

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="js/jquery.js"></script>
+    <script src="js/cropper.js"></script>
+    <style>
+        @font-face {
+            font-family: 'sourceHanSans';
+            src: local('./css/SourceHanSansCN-Regular'),
+                url('./css/SourceHanSansCN-Regular.otf') format('opentype');
+        }
+        html {
+            font-family: sourceHanSans;
+        }
+        body {
+            margin: 0;
+        }
+        p {
+            margin: 0;
+        }
+        .main {
+            box-sizing: border-box;
+            max-width: 1100px;
+            padding: 30px;
+        }
+        .img-container {
+            float: left;
+            width: 600px;
+            height: 600px;
+            text-align: center;
+            background-color: #f7f7f7;
+        }
+        #image {
+            max-width: 100%;
+        }
+        .img-result {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            margin: -100px auto -80px;
+            transform: scale(.5);
+        }
+        .img-preview {
+            display: block;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+        .content-layer {
+            box-sizing: border-box;
+            position: absolute;
+            top: 70px;
+            left: 30px;
+            width: 450px;
+            height: 300px;
+            padding: 0 30px;
+            font-size: 30px;
+            border-radius: 12px;
+            background: #fff;
+        }
+        .goods-labels {
+            margin-top: -20px;
+            white-space: nowrap;
+        }
+        .goods-label {
+            float: left;
+            margin-right: .5em;
+            line-height: 1.6em;
+            padding-right: .3em;
+            padding-left: 1.6em;
+            border-radius: .2em;
+            font-size: 24px;
+            color: #fff;
+            background: #09f;
+        }
+        .goods-label::before {
+            content: '\0020';
+            float: left;
+            width: 1em;
+            height: 1em;
+            margin-top: .25em;
+            margin-left: -1.3em;
+            border-radius: 50%;
+            background: #fff;
+        }
+        .img-goods-name {
+            position: relative;
+            top: 20px;
+            margin-bottom: 30px;
+            clear: left;
+            font-size: 36px;
+            font-weight: 700;
+            line-height: 2;
+        }
+        .gray-info {
+            color: #999;
+        }
+        .img-price-before {
+            font-size: 20px;
+            color: #999;
+            text-decoration: line-through;
+        }
+        .img-price-now {
+        }
+
+        .preview-canvas {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 1px 1px 8px #999;
+        }
+        .preview-canvas,
+        .preview-canvas canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .img-operate {
+            float: left;
+            width: 400px;
+            margin-left: 20px;
+        }
+        .img-upload-btn {
+            position: relative;
+            float: left;
+            overflow: hidden;
+            padding: 0 15px;
+            margin-right: 10px;
+            line-height: 30px;
+            text-align: center;
+            color: #fff;
+            border-radius: 4px;
+            background: #333;
+            box-shadow: 0 1px 4px #999;
+            cursor: pointer;
+        }
+        .file-upload {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .form-group {
+            clear: both;
+            margin-bottom: 15px;
+        }
+        .form-group::after {
+            content: '\0020';
+            display: table;
+            clear: both;
+        }
+        .img-operate-label {
+            display: block;
+            margin-bottom: 15px;
+        }
+        .img-tag-label {
+            position: relative;
+            display: inline-block;
+            font-size: 12px;
+            line-height: 28px;
+            vertical-align: middle;
+        }
+        .img-label-title {
+            float: left;
+            width: 84px;
+            padding-right: 10px;
+            line-height: 28px;
+            text-align: right;
+        }
+        .hidden-img {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .img-info {
+            box-sizing: border-box;
+            display: inline-block;
+            width: 180px;
+            height: 28px;
+            padding: 0 5px;
+            border: 0 none;
+            border-bottom: 1px solid #999;
+            outline: 0 none;
+        }
+        .readonly .input-icon {
+            color: #999;
+        }
+        .readonly .img-info {
+            font-size: 13.33333px;
+            line-height: 28px;
+            color: #999;
+        }
+        .input-icon {
+            position: relative;
+            left: 4px;
+            display: inline-block;
+            width: 16px;
+            margin-right: -16px;
+            font-size: 12px;
+            line-height: 28px;
+            font-style: normal;
+        }
+        .input-icon + .img-info {
+            padding-left: 20px;
+        }
+        .img-tag-checkbox {
+            margin: 0;
+        }
+
+        .preview-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, .9);
+        }
+    </style>
+    <link rel="stylesheet" href="css/cropper.css">
+</head>
+<body>
+    <div class="main">
+        <div class="img-result">
+            <div class="preview-canvas" id="preview_canvas"></div>
+        </div>
+
+        <div class="img-container">
+            <img id="image" src="img/picture.jpg" alt="Picture">
+            <!-- <img id="image" src="img/login_logo.png" alt="Picture"> -->
+        </div>
+
+        <form class="img-operate">
+            <div class="form-group">
+                <label class="img-upload-btn">
+                    修改背景图
+                    <input type="file" class="file-upload" id="inputImage" name="file" accept=".jpg,.jpeg,.png,.gif,.bmp,.tiff">
+                </label>
+                <a class="img-upload-btn" id="upload_img">提交</a>
+            </div>
+            <div class="form-group">
+                <p>请选择一或两项（多选不显示）</p>
+                <label class="img-tag-label">
+                    <span class="img-label-title">限时秒杀</span><input class="img-tag-checkbox" name="img_label" value="1" type="checkbox">
+                    <img class="hidden-img" src="./img/label-1.png" >
+                </label>
+                <label class="img-tag-label">
+                    <span class="img-label-title">热销爆品</span><input class="img-tag-checkbox" name="img_label" value="2" type="checkbox">
+                    <img class="hidden-img" src="./img/label-2.png" >
+                </label>
+                <label class="img-tag-label">
+                    <span class="img-label-title">第三标签</span><input class="img-tag-checkbox" name="img_label" value="3" type="checkbox">
+                    <img class="hidden-img" src="./img/label-3.png" >
+                </label>
+                <label class="img-tag-label">
+                    <span class="img-label-title">第四标签</span><input class="img-tag-checkbox" name="img_label" value="4" type="checkbox">
+                    <img class="hidden-img" src="./img/label-4.png" >
+                </label>
+                <label class="img-tag-label">
+                    <span class="img-label-title">第五标签</span><input class="img-tag-checkbox" name="img_label" value="5" type="checkbox">
+                    <img class="hidden-img" src="./img/label-5.png" >
+                </label>
+            </div>
+            <label class="img-operate-label">
+                <span class="img-label-title">商品名称</span>
+                <input class="img-info" id="item_name" type="text" autocomplete="off">
+            </label>
+            <label class="img-operate-label readonly">
+                <span class="img-label-title">劵前价</span>
+                <i class="input-icon">￥</i><span class="img-info" id="price_before">84.00</span>
+            </label>
+            <label class="img-operate-label">
+                <span class="img-label-title">秒杀价</span>
+                <i class="input-icon">￥</i><input class="img-info" id="price_current" type="text" autocomplete="off">
+            </label>
+            <img class="hidden-img" id="hidden_btn" src="./img/btn.png" >
+        </form>
+    </div>
+
+    <script src="js/jquery-cropper.js"></script>
+    <script>
+        $().ready(function() {
+            var $image = $('#image');
+            var $item_name = $('#item_name');
+            var $price_before = $('#price_before');
+            var $price_current = $('#price_current');
+            var options = {
+                aspectRatio: 2,
+                dragMode: 'move',
+                zoomable: false,
+                viewMode: 2,
+                crop: function (e) {
+                    set_preview();
+                }
+            };
+            $image.on('load', function() {
+                console.log('!');
+            });
+            $image[0].onload = function(){
+                console.log('?');
+            };
+
+            // Cropper
+            $image.on({
+                ready: function (e) {
+                    console.log(e.type);
+                },
+                cropstart: function (e) {
+                    console.log(e.type, e.detail.action);
+                },
+                cropmove: function (e) {
+                    console.log(e.type, e.detail.action);
+                },
+                cropend: function (e) {
+                    console.log(e.type, e.detail.action);
+                },
+                crop: function (e) {
+                    console.log(e.type);
+                },
+                zoom: function (e) {
+                    console.log(e.type, e.detail.ratio);
+                }
+            }).cropper(options);
+
+            setTimeout(set_preview, 100);
+            setTimeout(set_preview, 200);
+            setTimeout(set_preview, 300);
+
+            function roundedRect(ctx, options) {
+                options.x -= (options.width/2);
+                options.y -= (options.height/2);
+                ctx.save();
+                    ctx.translate(options.x, options.y);
+                    ctx.beginPath();
+
+                    ctx.moveTo( options.radius, 0 );
+                    ctx.arcTo(  options.width, 0, options.width, options.height, options.radius );
+                    ctx.arcTo(  options.width, options.height, 0, options.height, options.radius );
+                    ctx.arcTo(  0, options.height, 0, 0, options.radius );
+                    ctx.arcTo(  0, 0, options.width, 0, options.radius );
+
+                    ctx.fillStyle = options.color;
+                    ctx.fill();
+                    ctx.closePath();
+                ctx.restore();
+            }
+            function img_labels(ctx, options) {
+                $('.img-tag-checkbox:checked').each(function(i) {
+                    var $this = $(this);
+                    if(i < 2) {
+                        var id = $this.val();
+                        var $img = $this.siblings('.hidden-img');
+                        ctx.save();
+                            ctx.translate(options.x, options.y);
+                            ctx.beginPath();
+
+                            ctx.drawImage($img[0], i * options.width * 1.1 + options.width * .1, options.width * -.12, options.width, options.width * .25);
+
+                            ctx.closePath();
+                        ctx.restore();
+                    }
+                });
+            }
+            function fill_texts(ctx, options) {
+                ctx.save();
+                    ctx.translate(options.x, options.y);
+                    ctx.beginPath();
+
+                        if($item_name.val()) {
+                            ctx.fillStyle = '#333';
+                            ctx.font = 'bold 22px sourceHanSans';
+                            ctx.fillText($item_name.val(), 0, 2);
+                        } else {
+                            ctx.fillStyle = '#ccc';
+                            ctx.font = '22px sourceHanSans';
+                            ctx.fillText('[商品名称]', 0, 2);
+                        }
+
+                        ctx.font = '12px sourceHanSans';
+                        ctx.fillStyle = '#999';
+                        ctx.save();
+                            ctx.scale(.83333, .83333);
+                            ctx.fillText('劵前价：'+$price_before.html(), 0, 32);
+                        ctx.restore();
+                    ctx.closePath();
+
+                    var w = ctx.measureText('劵前价：'+$price_before.html()).width * .83333;
+                    ctx.beginPath();
+                        ctx.moveTo(0, 25);
+                        ctx.lineTo(w, 25);
+                        ctx.lineWidth = .5;
+                        ctx.stroke();
+                    ctx.closePath();
+
+                    ctx.beginPath();
+                        ctx.font = '14px sourceHanSans';
+                        ctx.fillStyle = '#333';
+                        ctx.fillText('秒杀价：', 0, 48);
+
+                        ctx.fillStyle = '#f04134';
+                        ctx.fillText('￥', 60, 48);
+
+                        ctx.textBaseline = 'alphabetic';
+                        if($price_current.val()) {
+                            ctx.font = 'bold 22px sourceHanSans';
+                            ctx.fillText($price_current.val(), 75, 48);
+                        } else {
+                            ctx.fillStyle = '#ccc';
+                            ctx.font = '22px sourceHanSans';
+                            ctx.fillText('[秒杀价]', 75, 48);
+                        }
+                        ctx.fillText($price_current.val() || '[秒杀价]', 75, 48);
+
+                    ctx.closePath();
+                ctx.restore();
+            }
+            function view_btn(ctx, options) {
+                ctx.save();
+                    ctx.translate(options.x, options.y);
+                    ctx.beginPath();
+
+
+                        var $img = $('#hidden_btn');
+                        ctx.drawImage($img[0], 0, 0, options.width, options.width * .25);
+
+                        // roundedRect(ctx, { x: 0, y: 0, width: options.width, height: options.height, radius: options.height*.2, color: '#333' });
+                        // ctx.font = '11px sourceHanSans';
+                        // ctx.fillStyle = '#fff';
+                        // ctx.textAlign = 'center';
+                        // ctx.textBaseline = 'middle';
+                        // ctx.fillText('点击查看', 0, 0);
+
+                    ctx.closePath();
+                ctx.restore();
+            }
+
+            function set_preview() {
+                console.log('set_preview');
+                var canvas = $image.cropper('getCroppedCanvas', {width: 400, height: 200});
+
+                var ctx = canvas.getContext('2d');
+                // ctx.clearRect(0, 0, canvas.width, canvas.height);
+                roundedRect(ctx, { x: canvas.width*.35, y: canvas.height*.55, width: canvas.width*.6, height: canvas.height*.7, radius: canvas.height*.04, color: '#fff' });
+                img_labels(ctx, { x: canvas.height*.1, y: canvas.height*.2, width: canvas.width*.2 });
+                fill_texts(ctx, { x: canvas.width*.1, y: canvas.height*.4 });
+                view_btn(ctx, { x: canvas.width*.1, y: canvas.height*.72, width: canvas.width*.2, height: canvas.height*.1 });
+
+                $('.preview-canvas').html('');
+                $('.preview-canvas').append(canvas);
+            }
+
+            $item_name.on('keyup', set_preview);
+            $price_current.on('keyup', set_preview);
+            $('[name="img_label"]').on('change', set_preview);
+
+            var $inputImage = $('#inputImage');
+            var uploadedImageURL;
+            if(window.URL) {
+                $inputImage.change(function () {
+                    var files = this.files;
+                    var file;
+
+                    if (!$image.data('cropper')) {
+                        return;
+                    }
+
+                    if (files && files.length) {
+                        file = files[0];
+
+                        if (/^image\/\w+$/.test(file.type)) {
+                            uploadedImageName = file.name;
+                            uploadedImageType = file.type;
+
+                            if (uploadedImageURL) {
+                                URL.revokeObjectURL(uploadedImageURL);
+                            }
+
+                            uploadedImageURL = URL.createObjectURL(file);
+                            $image.cropper('destroy').attr('src', uploadedImageURL).cropper(options);
+                            $inputImage.val('');
+                        } else {
+                            window.alert('Please choose an image file.');
+                        }
+                    }
+                });
+            } else {
+                $inputImage.prop('disabled', true).parent().addClass('disabled');
+            }
+
+            $('#upload_img').on('click', function() {
+                if($('[name="img_label"]:checked').length && $item_name.val() && $price_current.val()) {
+                    var canvas = $('#preview_canvas').children('canvas')[0];
+                    var pic = canvas.toDataURL();
+                    console.log(pic);
+                    var $preview_layer = $('#preview_layer');
+                    if(!$preview_layer.length) {
+                        $preview_layer = $('<div class="preview-layer" id="preview_layer" style="display: none;"></div>');
+                        $preview_layer.appendTo($('body'));
+                        $preview_layer.on('click', function() {
+                            $preview_layer.hide();
+                        });
+                    }
+                    $preview_layer.html('<img src="'+pic+'">');
+                    $preview_layer.fadeIn();
+                } else {
+                    alert('请完整填写数据');
+                }
+            });
+
+            // setTimeout(set_preview, 100);
+        });
+    </script>
+</body>
+</html>
